@@ -1,19 +1,23 @@
 #include <RunningMedian.h>
 
 byte playPinLow = 2;     // button pin
-byte playPinHigh = 3;    // button pin
+byte playPinMid = 3;    // button pin
+byte playPinHigh = 4;    // button pin
 byte trigPin = 11;       // Trigger
 byte echoPin = 12;       // Echo
 
-unsigned int minRange = 200;
-unsigned int maxRange = 4000;       
+// change minRange and maxRange depending on the usable range of your sensor:
+unsigned int minRange = 100;
+unsigned int maxRange = 2000;       
 float lowMinFreq = 41.20;    // E1
-float lowMaxFreq = 82.41;    // E2
-float highMinFreq = 82.41;   // E2
-float highMaxFreq = 164.8;   // E3
+float lowMaxFreq = 2 * lowMinFreq;    // E2
+float midMinFreq = lowMaxFreq;   // E2
+float midMaxFreq = 2 * midMinFreq;   // E3
+float highMinFreq = midMaxFreq;   // E3
+float highMaxFreq = 2 * midMaxFreq;   // E4
 
-byte windowSize = 19; // size of buffer window
-RunningMedian samples = RunningMedian(windowSize); // buffer of size windowSize
+byte bufferSize = 19; // size of buffer window, higher bufferSize should give more stable tone but more latency
+RunningMedian samples = RunningMedian(bufferSize); // buffer of size bufferSize
 
 void setup() {
     Serial.begin(9600); // initialize serial communications (for debugging only)
@@ -22,11 +26,12 @@ void setup() {
     pinMode(trigPin, OUTPUT);
     pinMode(echoPin, INPUT);
     pinMode(playPinLow, INPUT);
+    pinMode(playPinMid, INPUT);
     pinMode(playPinHigh, INPUT);
 }
 
 void loop() {
-  if (digitalRead(playPinLow) || digitalRead(playPinHigh)) {
+  if (digitalRead(playPinLow) || digitalRead(playPinMid) || digitalRead(playPinHigh)) {
     // trigger sending a sonic pulse on trigPin
     digitalWrite(trigPin, LOW);
     delayMicroseconds(5); 
@@ -36,13 +41,15 @@ void loop() {
     
     samples.add(pulseIn(echoPin, HIGH)); // add pulse length to samples
     long median = samples.getMedian(); // calculate the median of buffered samples for stability
-    // change the minimum and maximum input numbers below depending on the range
-    // your sensor's giving:
     int frequency{};
-    if (digitalRead(playPinLow) && median <= maxRange){
+    // Use different tone range depending on button input
+    if (digitalRead(playPinLow) && median <= maxRange && median >= minRange){
         frequency = map(median, minRange, maxRange, lowMinFreq, lowMaxFreq);
     }
-    if (digitalRead(playPinHigh) && median <= maxRange){
+    if (digitalRead(playPinMid) && median <= maxRange && median >= minRange){
+        frequency = map(median, minRange, maxRange, midMinFreq, midMaxFreq);
+    }
+    if (digitalRead(playPinHigh) && median <= maxRange && median >= minRange){
         frequency = map(median, minRange, maxRange, highMinFreq, highMaxFreq);
     }
 
