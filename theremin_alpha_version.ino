@@ -1,8 +1,16 @@
 #include <RunningMedian.h>
 
-int playPin = 2;     // button pin
-int trigPin = 11;    // Trigger
-int echoPin = 12;    // Echo
+int playPinLow = 2;     // button pin
+int playPinHigh = 3;    // button pin
+int trigPin = 11;       // Trigger
+int echoPin = 12;       // Echo
+
+unsigned int minRange = 200;
+unsigned int maxRange = 4000;       
+float lowMinFreq = 41.20;    // E1
+float lowMaxFreq = 82.41;    // E2
+float highMinFreq = 82.41;   // E2
+float highMaxFreq = 164.8;   // E3
 
 // make a buffer with recent samples
 unsigned int windowSize = 19;
@@ -17,7 +25,7 @@ void setup() {
 }
 
 void loop() {
-  if (digitalRead(playPin)) {
+  if (digitalRead(playPinLow) || digitalRead(playPinHigh)) {
     // trigger sending a sonic pulse on trigPin
     digitalWrite(trigPin, LOW);
     delayMicroseconds(5); 
@@ -31,9 +39,16 @@ void loop() {
     long median = samples.getMedian();
     // change the minimum and maximum input numbers below depending on the range
     // your sensor's giving:
-    int thisPitch = map(median, 200, 4000, 80, 300);
+    int frequency{};
+    if (digitalRead(playPinLow) && median <= maxRange){
+        frequency = map(median, minRange, maxRange, lowMinFreq, lowMaxFreq);
+    }
+    else if (digitalRead(playPinHigh) && median <= maxRange){
+        frequency = map(median, minRange, maxRange, highMinFreq, highMaxFreq);
+    }
+        
     // play the pitch:
-    tone(9, thisPitch, 10);
+    tone(9, frequency, 16);
     // delay in between reads for stability
     delay(1);        
   }
