@@ -40,20 +40,22 @@ void loop() {
     digitalWrite(trigPin, LOW);  
     
     samples.add(pulseIn(echoPin, HIGH)); // add pulse length to samples
-    long median = samples.getMedian();   // calculate the median of buffered samples for stability
+    // calculate the median of buffered samples for stability
+    unsigned int a = 2^16 - 1; // scaling factor for resolution
+    long median = a * log(samples.getMedian()) / log(2); // using logarithmic scaling for physically even spacing of notes  
     int frequency{};
     // Use different tone range depending on button input
     if (digitalRead(playPinLow)){
-        frequency = constrain(map(median, minRange, maxRange, lowMinFreq, lowMaxFreq), lowMinFreq, lowMaxFreq);
+        frequency = constrain(map(median, a * log(minRange) / log(2), a * log(maxRange) / log(2), lowMinFreq, lowMaxFreq), lowMinFreq, lowMaxFreq);
     }
     if (digitalRead(playPinMid)){
-        frequency = constrain(map(median, minRange, maxRange, midMinFreq, midMaxFreq), midMinFreq, midMaxFreq);
+        frequency = constrain(map(median, a * log(minRange) / log(2), a * log(maxRange) / log(2), midMinFreq, midMaxFreq), midMinFreq, midMaxFreq);
     }
     if (digitalRead(playPinHigh)){
-        frequency = constrain(map(median, minRange, maxRange, highMinFreq, highMaxFreq), highMinFreq, highMaxFreq);
+        frequency = constrain(map(median, a * log(minRange) / log(2), a * log(maxRange) / log(2), highMinFreq, highMaxFreq), highMinFreq, highMaxFreq);
     }
 
-    tone(9, frequency, 16); // play the pitch:
+    tone(9, frequency); // play the pitch:
     delay(1);               // delay in between reads for stability, might not be needed
   }
   else {
