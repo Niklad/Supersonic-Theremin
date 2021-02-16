@@ -1,31 +1,37 @@
 #include <RunningMedian.h>
 
-int playPinLow = 2;     // button pin
-int playPinHigh = 3;    // button pin
-int trigPin = 11;       // Trigger
-int echoPin = 12;       // Echo
+byte playPinLow = 2;     // button pin
+byte playPinMid = 3;     // button pin
+byte playPinHigh = 4;    // button pin
+byte trigPin = 11;       // Trigger
+byte echoPin = 12;       // Echo
 
-unsigned int minRange = 200;
-unsigned int maxRange = 4000;       
-float lowMinFreq = 41.20;    // E1
-float lowMaxFreq = 82.41;    // E2
-float highMinFreq = 82.41;   // E2
-float highMaxFreq = 164.8;   // E3
+// change minRange and maxRange depending on the usable range of your sensor:
+unsigned int minRange = 300;          // set a few cm away from the sensor, get too close and it will be bad
+unsigned int maxRange = 2000;         // set to a distance that won't cause too many false negatives
+float lowMinFreq = 41.20;             // E1
+float lowMaxFreq = 2 * lowMinFreq;    // E2
+float midMinFreq = lowMaxFreq;        // E2
+float midMaxFreq = 2 * midMinFreq;    // E3
+float highMinFreq = midMaxFreq;       // E3
+float highMaxFreq = 2 * midMaxFreq;   // E4
 
-// make a buffer with recent samples
-unsigned int windowSize = 19;
-RunningMedian samples = RunningMedian(windowSize);
+byte bufferSize = 19; // size of buffer window, higher bufferSize should give more stable tone but more latency
+RunningMedian samples = RunningMedian(bufferSize); // buffer of size bufferSize
 
 void setup() {
-    // initialize serial communications (for debugging only):
-    Serial.begin(9600);
-    // define inputs and outputs
+    Serial.begin(9600); // initialize serial communications (for debugging only)
+    
+    // defining inputs and outputs:
     pinMode(trigPin, OUTPUT);
     pinMode(echoPin, INPUT);
+    pinMode(playPinLow, INPUT);
+    pinMode(playPinMid, INPUT);
+    pinMode(playPinHigh, INPUT);
 }
 
 void loop() {
-  if (digitalRead(playPinLow) || digitalRead(playPinHigh)) {
+  if (digitalRead(playPinLow) || digitalRead(playPinMid) || digitalRead(playPinHigh)) {
     // trigger sending a sonic pulse on trigPin
     digitalWrite(trigPin, LOW);
     delayMicroseconds(5); 
@@ -33,29 +39,26 @@ void loop() {
     delayMicroseconds(10);
     digitalWrite(trigPin, LOW);  
     
-    // add pulse length to samples
-    samples.add(pulseIn(echoPin, HIGH));
-    // calculate the median of buffered samples for stability
-    long median = samples.getMedian();
-    // change the minimum and maximum input numbers below depending on the range
-    // your sensor's giving:
+    samples.add(pulseIn(echoPin, HIGH)); // add pulse length to samples
+    long median = samples.getMedian();   // calculate the median of buffered samples for stability
     int frequency{};
-    if (digitalRead(playPinLow) && median <= maxRange){
-        frequency = map(median, minRange, maxRange, lowMinFreq, lowMaxFreq);
+    // Use different tone range depending on button input
+    if (digitalRead(playPinLow)){
+        frequency = constrain(map(median, minRange, maxRange, lowMinFreq, lowMaxFreq), lowMinFreq, lowMaxFreq);
     }
-    else if (digitalRead(playPinHigh) && median <= maxRange){
-        frequency = map(median, minRange, maxRange, highMinFreq, highMaxFreq);
+    if (digitalRead(playPinMid)){
+        frequency = constrain(map(median, minRange, maxRange, midMinFreq, midMaxFreq), midMinFreq, midMaxFreq);
     }
-        
-    // play the pitch:
-    tone(9, frequency, 16);
-    // delay in between reads for stability
-    delay(1);        
+    if (digitalRead(playPinHigh)){
+        frequency = constrain(map(median, minRange, maxRange, highMinFreq, highMaxFreq), highMinFreq, highMaxFreq);
+    }
+
+    tone(9, frequency, 16); // play the pitch:
+    delay(1);               // delay in between reads for stability, might not be needed
   }
   else {
-    noTone(9);
-    // start with a clear buffer after stopping
-    samples.clear();
-    delay(1);
+    noTone(9);        // don't play a tone
+    samples.clear();  // clear the buffer between plays 
+    delay(1);         // might not be needed, will test later
   } 
 }

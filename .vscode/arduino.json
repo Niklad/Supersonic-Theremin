@@ -1,5 +1,5 @@
 {
-    "sketch": "theremin_v3.ino",
+    "sketch": "theremin_alpha_version.ino",
     "board": "arduino:avr:uno",
     "port": "COM4"
 }
