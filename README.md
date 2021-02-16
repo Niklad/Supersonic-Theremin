@@ -2,4 +2,4 @@
 
 Picture of the theremin:
 
-![Theremin](https://drive.google.com/file/d/1tCAOR3nN2KdWrrdUiFwzupj1o5Ef0K16/view)
+![Theremin](https://github.com/Niklad/Supersonic-Theremin/blob/main/Images%20and%20videos/Picture_of_the_theremin.jpg?raw=true)
